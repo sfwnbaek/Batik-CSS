@@ -1,0 +1,306 @@
+:root {
+  --bg: #071826;
+  --panel: linear-gradient(180deg, #071826, #0b2330);
+  --muted: #9fb2bd;
+  --text: #e7f2f8;
+  --accent: #0077d6;
+  --glass: rgba(255,255,255,0.03);
+  --radius: 10px;
+  --sidebar-width: 260px;
+  --sidebar-collapsed: 72px;
+}
+
+/* Sidebar shell */
+.batik-sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background: var(--panel);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  box-shadow: 2px 0 18px rgba(2,6,23,0.65);
+  transition: width 200ms ease, box-shadow 200ms ease;
+  overflow: hidden;
+}
+
+/* collapsed */
+.batik-sidebar.collapsed {
+  width: var(--sidebar-collapsed);
+  min-width: var(--sidebar-collapsed);
+}
+
+/* BRAND */
+.batik-sidebar .brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+
+.brand-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), #2ea6ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  color: white;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.45);
+}
+
+.brand-text .brand-title {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.brand-text .brand-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* collapse button (kept for future use; hidden when collapsed rules applied) */
+.collapse-btn {
+  position: absolute;
+  right: 0;
+  top: 6px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+/* NAV SECTION & TITLES */
+.nav-section {
+  margin-top: 4px;
+}
+
+.nav-section .section-title {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 8px 0;
+  padding-left: 6px;
+}
+
+/* base list */
+.nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* NAV ITEM — enhanced and animated */
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  margin: 6px 4px;
+  overflow: hidden;
+
+  /* transitions for lift, background & shadow */
+  transition:
+    transform 180ms cubic-bezier(.2,.9,.2,1),
+    box-shadow 180ms cubic-bezier(.2,.9,.2,1),
+    background 220ms ease,
+    color 180ms ease;
+  will-change: transform, box-shadow, background;
+}
+
+/* sliding accent bar (left) */
+.nav-item::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 12%;
+  bottom: 12%;
+  width: 4px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--accent), #2ea6ff);
+  transform: translateX(-120%);
+  transition: transform 220ms cubic-bezier(.22,.98,.42,1), opacity 220ms ease;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* Hover effect: lift, subtle glow and slide-in accent */
+.nav-item:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 10px 24px rgba(2,6,23,0.34);
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+}
+
+/* Slide accent in on hover */
+.nav-item:hover::before {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* Make icons slightly change color on hover (works for emoji & svg icons) */
+.nav-item:hover .nav-icon,
+.nav-item:hover .nav-icon svg {
+  color: var(--accent);
+  filter: drop-shadow(0 2px 6px rgba(0,119,214,0.12));
+  transition: color 180ms ease, filter 180ms ease;
+}
+
+/* smaller spacing variant (already in file but keep consistent) */
+.nav-item { margin: 4px 6px; padding: 8px; border-radius: 8px; }
+
+/* ACTIVE item styling (stronger background + inset border) */
+.nav-item.active {
+  transform: translateY(-2px);
+  box-shadow: inset 0 0 0 1px rgba(46,166,255,0.05), 0 8px 20px rgba(2,6,23,0.30);
+  background: linear-gradient(90deg, rgba(0,119,214,0.12), rgba(46,166,255,0.04));
+  font-weight: 700;
+}
+
+/* ICON + LABEL */
+.nav-icon {
+  width: 30px;
+  text-align: center;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 180ms ease, transform 180ms ease;
+  color: var(--muted);
+}
+
+.nav-label {
+  font-size: 14px;
+  white-space: nowrap;
+  transition: color 180ms ease;
+}
+
+/* bottom system section spacing - pinned to bottom */
+.nav-section.bottom {
+  margin-top: auto;
+  padding-bottom: 10px;
+  border-top: 1px solid rgba(255,255,255,0.02);
+  margin-top: 18px;
+}
+
+/* FOOTER (user) */
+.sidebar-footer {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.03);
+}
+
+.user-mini {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), #2ea6ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.45);
+}
+
+.user-info .name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.user-info .role {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* collapsed styles: hide labels and section titles */
+.batik-sidebar.collapsed .brand-text,
+.batik-sidebar.collapsed .nav-label,
+.batik-sidebar.collapsed .section-title,
+.batik-sidebar.collapsed .user-info,
+.batik-sidebar.collapsed .collapse-btn {
+  display: none;
+}
+
+/* reduce padding when collapsed */
+.batik-sidebar.collapsed {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* mobile fallback: disable heavy effects and hide sidebar */
+@media (max-width: 900px) {
+  .batik-sidebar {
+    display: none;
+  }
+  .nav-item {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  .nav-item::before { display: none !important; }
+}
+/* ===== pin System + footer to bottom ===== */
+
+/* ensure the sidebar fills the viewport vertical space so flexing works */
+.batik-sidebar {
+  /* if you already have height set, this is ok; otherwise enforce full height */
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;             /* already present but ensure it */
+  flex-direction: column;    /* ensure children are stacked vertically */
+  box-sizing: border-box;
+}
+
+/* ensure nav wrapper consumes remaining space */
+.batik-sidebar .nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 0%;
+  min-height: 0;   /* important for proper shrinking */
+}
+
+/* pin the bottom nav section (System) to bottom */
+.nav-section.bottom {
+  margin-top: auto;     /* push this section to the bottom of .nav */
+  padding-bottom: 10px;
+  border-top: 1px solid rgba(255,255,255,0.02);
+}
+
+/* make sure footer (dispatcher) sits below nav and doesn't add extra space above */
+.sidebar-footer {
+  margin-top: 0;        /* no extra top margin */
+  /* let footer stay after the nav wrapper; if not, force it */
+  /* alternatively use margin-top:auto to force it to bottom of sidebar */
+  /* margin-top: auto; */
+  padding-top: 12px;
+}
+
+/* (optional) collapse behaviour: when collapsed, keep footer visible but compact */
+.batik-sidebar.collapsed .sidebar-footer {
+  padding-top: 10px;
+}
+
+/* mobile fallback: if sidebar hiding on small screens, nothing to do */
+@media (max-width: 900px) {
+  .batik-sidebar { min-height: auto; height: auto; }
+}
+

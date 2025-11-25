@@ -1,0 +1,80 @@
+:root{
+  --bg: #0f1720;
+  --panel: #111827;
+  --text: #e6eef8;
+  --muted: #9aa6b2;
+  --accent: #ffc107;
+}
+
+/* Global safe layout */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.app {
+  display: flex;
+  min-height: 100vh;
+  height: 100%;
+  width: 100%;
+  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* fallback so both .sidebar and .batik-sidebar are handled */
+.sidebar, .batik-sidebar {
+  flex: 0 0 var(--sidebar-width, 260px);
+  min-width: var(--sidebar-width, 260px);
+}
+
+/* main area styling + ensure shrink behavior */
+.main-area {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+
+.search-box {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  border-radius:8px;
+  background: rgba(255,255,255,0.02);
+}
+
+
+
+.search-box input {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  outline: none;
+}
+
+.topbar-right { display:flex; align-items:center; gap:8px; }
+
+.icon-btn { background:transparent; border:0; padding:8px; border-radius:8px; color:var(--text); cursor:pointer; }
+
+.themes-pop { position:absolute; right:120px; top:64px; background:var(--panel); padding:8px; border-radius:8px; box-shadow:0 6px 20px rgba(2,6,23,0.6); }
+
+/* content area must be flexible and shrinkable */
+.content {
+  flex: 1 1 0%;
+  min-width: 0;
+  padding: 28px;
+  box-sizing: border-box;
+}
+
+
+
+/* responsive */
+@media (max-width:900px){
+  .batik-sidebar { display:none; }
+  .sidebar { display:none; }
+}
