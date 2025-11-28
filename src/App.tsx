@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
-import Topbar from './components/Topbar';
+import Topbar from './components/Topbar';              // 👈 NEW
 import Dashboard from './pages/Dashboard';
 import DutyStandby from './pages/DutyStandby';
 import CrewNonAvailability from './pages/CrewNonAvailability';
@@ -17,8 +17,11 @@ export default function App() {
   return (
     <div className={dark ? 'app dark' : 'app light'}>
       <Sidebar />
+
+      {/* MAIN AREA: now has Topbar + page content */}
       <div className="main-area">
-        <Topbar dark={dark} setDark={setDark} />
+        <Topbar dark={dark} setDark={setDark} />      {/* 👈 always visible */}
+
         <div className="content">
           <Routes>
             <Route path="/" element={<Dashboard />} />

@@ -1,10 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
-import {
-  FiSun,
-  FiMoon,
-  FiSettings,
-  FiUser,
-} from "react-icons/fi";
+import React from "react";
+import { FiUser, FiSettings, FiSun, FiMoon } from "react-icons/fi";
 import "./Topbar.css";
 
 export default function Topbar({
@@ -14,60 +9,26 @@ export default function Topbar({
   dark: boolean;
   setDark: (v: boolean) => void;
 }) {
-  const [openProfile, setOpenProfile] = useState(false);
-  const profileRef = useRef<HTMLDivElement | null>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleOutside(e: MouseEvent) {
-      const target = e.target as Node;
-      if (profileRef.current && !profileRef.current.contains(target)) {
-        setOpenProfile(false);
-      }
-    }
-    document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
-  }, []);
-
   return (
-    <header className="topbar">
-      {/* LEFT SIDE — now empty (since search removed) */}
-      <div className="topbar-left" />
+    <header className="neo-topbar">
+      {/* Title / App name */}
+      <div className="neo-topbar-title"></div>
 
-      {/* RIGHT SIDE */}
-      <div className="topbar-right">
-        {/* Dark/Light mode */}
+      {/* Buttons */}
+      <div className="neo-topbar-actions">
+
+        {/* Theme toggle */}
         <button
-          className="icon-btn"
+          className="neo-btn"
           onClick={() => setDark(!dark)}
-          title="Dark / Light"
+          title="Toggle theme"
         >
           {dark ? <FiMoon /> : <FiSun />}
         </button>
 
-        {/* Profile dropdown */}
-        <div className="profile-menu" ref={profileRef}>
-          <button
-            className="icon-btn"
-            title="Profile"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenProfile((s) => !s);
-            }}
-          >
-            <FiUser />
-          </button>
 
-          {openProfile && (
-            <div className="profile-dropdown">
-              <button>Profile Settings</button>
-              <button>Logout</button>
-            </div>
-          )}
-        </div>
-
-        {/* Settings icon */}
-        <button className="icon-btn" title="Settings">
+        {/* Settings */}
+        <button className="neo-btn" title="Settings">
           <FiSettings />
         </button>
       </div>

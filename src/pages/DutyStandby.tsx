@@ -1,5 +1,6 @@
 // src/pages/DutyStandby.tsx
 import React, { useEffect, useMemo, useState } from "react";
+import "../components/summary-glass.css"; // adjust path if needed
 
 type RawRow = {
   id?: number;
@@ -16,7 +17,7 @@ type RawRow = {
 
 const API_BASE = "http://localhost/batik-api/api"; // adjust if needed
 
-// ---------------- utilities (unchanged) ----------------
+// ---------------- utilities ----------------
 function toCSV(rows: RawRow[]) {
   if (!rows || rows.length === 0) return "";
   const keys = ["rep_date", "eqt", "sby_code", "crew_pos", "crew_id", "name", "mc_code", "dutyno"];
@@ -33,6 +34,7 @@ function toCSV(rows: RawRow[]) {
   );
   return [header, ...lines].join("\r\n");
 }
+
 function badgeColor(code?: string) {
   if (!code) return "#6b7280";
   const c = code.toUpperCase();
@@ -44,6 +46,7 @@ function badgeColor(code?: string) {
   if (["CPT", "FO"].includes(c)) return "#0ea5a4";
   return "#4b5563";
 }
+
 function formatDateIso(d?: string) {
   if (!d) return "";
   if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.split("T")[0];
@@ -56,20 +59,20 @@ function formatDateIso(d?: string) {
   return d;
 }
 
-// ---------------- POS colour helper (new) ----------------
+// ---------------- POS colour helper ----------------
 function posBadgeColor(pos?: string) {
   if (!pos) return "#6b7280";
   const p = pos.toUpperCase();
   if (p === "CPT" || p === "CP") return "#ef4444"; // red - Captain
-  if (p === "CC") return "#2563eb"; // blue - Cabin Commander (example)
+  if (p === "CC") return "#2563eb"; // blue - Cabin Commander
   if (p === "FO") return "#059669"; // green - First Officer
-  if (p === "ICC") return "#f97316"; // orange - Inflight Check Captain (example)
-  if (p === "FA") return "#8b5cf6"; // purple - Flight Attendant
-  if (p === "SFA") return "#64748b"; // slate - Senior FA
-  return "#4b5563"; // fallback gray
+  if (p === "ICC") return "#f97316"; // orange
+  if (p === "FA") return "#8b5cf6"; // purple
+  if (p === "SFA") return "#64748b"; // slate
+  return "#4b5563";
 }
 
-// ---------------- Insert form (updated button style) ----------------
+// ---------------- Insert form ----------------
 function InsertDutyForm({ onAdded }: { onAdded?: () => void }) {
   const [repDate, setRepDate] = useState<string>("");
   const [sbyCode, setSbyCode] = useState<string>("SBY1");
@@ -99,12 +102,12 @@ function InsertDutyForm({ onAdded }: { onAdded?: () => void }) {
         name,
         eqt,
         mc_code: mcCode,
-        dutyno
+        dutyno,
       };
       const res = await fetch(`${API_BASE}/insert_duty.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || JSON.stringify(data));
@@ -120,7 +123,16 @@ function InsertDutyForm({ onAdded }: { onAdded?: () => void }) {
   }
 
   return (
-    <form onSubmit={submit} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 0, flexWrap: "wrap" }}>
+    <form
+      onSubmit={submit}
+      style={{
+        display: "flex",
+        gap: 8,
+        alignItems: "center",
+        marginBottom: 0,
+        flexWrap: "wrap",
+      }}
+    >
       <input type="date" value={repDate} onChange={(e) => setRepDate(e.target.value)} style={{ padding: 6 }} />
       <select value={sbyCode} onChange={(e) => setSbyCode(e.target.value)} style={{ padding: 8 }}>
         <option>SBY1</option>
@@ -145,17 +157,19 @@ function InsertDutyForm({ onAdded }: { onAdded?: () => void }) {
       <input placeholder="EQT" value={eqt} onChange={(e) => setEqt(e.target.value)} style={{ padding: 8, width: 80 }} />
       <input placeholder="MC" value={mcCode} onChange={(e) => setMcCode(e.target.value)} style={{ padding: 8, width: 80 }} />
       <input placeholder="DUTYNO" value={dutyno} onChange={(e) => setDutyno(e.target.value)} style={{ padding: 8, width: 90 }} />
-      <button type="submit" disabled={loading} className="glass-btn primary" style={{ padding: "8px 12px" }}>{loading ? "Saving..." : "Add"}</button>
+      <button type="submit" disabled={loading} className="glass-btn primary" style={{ padding: "8px 12px" }}>
+        {loading ? "Saving..." : "Add"}
+      </button>
       {msg && <div style={{ marginLeft: 8, color: "#cbd5e1" }}>{msg}</div>}
     </form>
   );
 }
 
-// ---------------- Edit form (now used inside modal) ----------------
+// ---------------- Edit form (modal) ----------------
 function EditDutyForm({
   row,
   onCancel,
-  onSaved
+  onSaved,
 }: {
   row: RawRow;
   onCancel: () => void;
@@ -187,12 +201,12 @@ function EditDutyForm({
         name,
         eqt,
         mc_code: mcCode,
-        dutyno
+        dutyno,
       };
       const res = await fetch(`${API_BASE}/edit_duty.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || JSON.stringify(data));
@@ -206,8 +220,19 @@ function EditDutyForm({
   }
 
   return (
-    <div style={{ padding: 12, borderRadius: 8, background: "rgba(0,0,0,0.04)", marginBottom: 12 }}>
-      <form onSubmit={save} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+    <div
+      style={{
+        padding: 12,
+        borderRadius: 8,
+        background: "rgba(15,23,42,0.85)",
+        marginBottom: 12,
+        border: "1px solid rgba(148,163,184,0.25)",
+      }}
+    >
+      <form
+        onSubmit={save}
+        style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}
+      >
         <input type="date" value={repDate} onChange={(e) => setRepDate(e.target.value)} style={{ padding: 8 }} />
         <select value={sbyCode} onChange={(e) => setSbyCode(e.target.value)} style={{ padding: 8 }}>
           <option>SBY1</option>
@@ -232,8 +257,22 @@ function EditDutyForm({
         <input placeholder="EQT" value={eqt} onChange={(e) => setEqt(e.target.value)} style={{ padding: 8, width: 80 }} />
         <input placeholder="MC" value={mcCode} onChange={(e) => setMcCode(e.target.value)} style={{ padding: 8, width: 80 }} />
         <input placeholder="DUTYNO" value={dutyno} onChange={(e) => setDutyno(e.target.value)} style={{ padding: 8, width: 90 }} />
-        <button type="submit" disabled={loading} className="glass-btn primary" style={{ padding: "8px 12px" }}>{loading ? "Saving..." : "Save"}</button>
-        <button type="button" onClick={onCancel} className="glass-btn ghost" style={{ padding: "8px 12px" }}>Cancel</button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="glass-btn primary"
+          style={{ padding: "8px 12px" }}
+        >
+          {loading ? "Saving..." : "Save"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="glass-btn ghost"
+          style={{ padding: "8px 12px" }}
+        >
+          Cancel
+        </button>
         {msg && <div style={{ color: "#cbd5e1" }}>{msg}</div>}
       </form>
     </div>
@@ -252,13 +291,8 @@ export default function DutyStandbyPage(): JSX.Element {
   const perPage = 20;
   const [viewPivot, setViewPivot] = useState<boolean>(false);
 
-  // reload trigger
   const [reloadCounter, setReloadCounter] = useState(0);
-
-  // edit state
   const [editingRow, setEditingRow] = useState<RawRow | null>(null);
-
-  // show/hide insert modal
   const [showInsert, setShowInsert] = useState(false);
 
   useEffect(() => {
@@ -318,15 +352,6 @@ export default function DutyStandbyPage(): JSX.Element {
   const pages = Math.max(1, Math.ceil(total / perPage));
   const pageRows = filtered.slice((page - 1) * perPage, page * perPage);
 
-  const pivot1 = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const r of filtered) {
-      const p = (r.crew_pos || "UNKNOWN").toUpperCase();
-      map.set(p, (map.get(p) || 0) + 1);
-    }
-    return Array.from(map.entries()).map(([rank, count]) => ({ rank, count }));
-  }, [filtered]);
-
   const pivot2 = useMemo(() => {
     const sbySet = new Set<string>();
     const matrix = new Map<string, Map<string, number>>();
@@ -353,7 +378,9 @@ export default function DutyStandbyPage(): JSX.Element {
       out.total = tot;
       return out;
     });
-    rowsOut.sort((a, b) => (a.eqt !== b.eqt ? a.eqt.localeCompare(b.eqt) : a.crew_pos.localeCompare(b.crew_pos)));
+    rowsOut.sort((a, b) =>
+      a.eqt !== b.eqt ? a.eqt.localeCompare(b.eqt) : a.crew_pos.localeCompare(b.crew_pos)
+    );
     return { sbyCols, rows: rowsOut };
   }, [filtered]);
 
@@ -380,20 +407,20 @@ export default function DutyStandbyPage(): JSX.Element {
     URL.revokeObjectURL(url);
   }
 
-  // ---- NEW: edit and delete handlers ----
   async function handleDelete(row: RawRow) {
     if (!row.id) return;
-    const ok = confirm(`Delete this row?\n${row.name ?? ""} — ${row.sby_code} ${row.rep_date}`);
+    const ok = confirm(
+      `Delete this row?\n${row.name ?? ""} — ${row.sby_code} ${row.rep_date}`
+    );
     if (!ok) return;
     try {
       const res = await fetch(`${API_BASE}/delete_duty.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: row.id })
+        body: JSON.stringify({ id: row.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || JSON.stringify(data));
-      // reload
       setReloadCounter((c) => c + 1);
       alert("Deleted");
     } catch (err: any) {
@@ -401,69 +428,22 @@ export default function DutyStandbyPage(): JSX.Element {
     }
   }
 
-  // open row in edit modal
   function handleOpenEdit(row: RawRow) {
     setEditingRow(row);
   }
 
-  // after save, close and reload
   function handleAfterEdit() {
     setEditingRow(null);
     setReloadCounter((c) => c + 1);
   }
 
-  // small inline styles
-  const styles: { [k: string]: React.CSSProperties } = {
-    // overall page container: smaller top/bottom padding
-    container: { padding: "12px 16px", maxWidth: "1100px", margin: "0 auto" },
-
-    // controls area: slightly smaller spacing
-    controls: { display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginBottom: 10 },
-
-    // card: reduced padding and slightly tighter shadow
-    card: {
-      background: "rgba(255,255,255,0.02)",
-      border: "1px solid rgba(255,255,255,0.03)",
-      borderRadius: 8,
-      padding: 8,
-      boxShadow: "0 6px 14px rgba(2,6,23,0.35)",
-      overflow: "hidden"
-    },
-
-    // table: smaller font for compact look
-    table: { width: "100%", borderCollapse: "collapse", fontSize: 13 },
-
-    // header cell compact
-    th: {
-      textAlign: "left",
-      padding: "8px 10px",
-      borderBottom: "1px solid rgba(255,255,255,0.03)",
-      position: "sticky",
-      top: 0,
-      background: "rgba(0,0,0,0.02)",
-      lineHeight: 1.1,
-      fontSize: 13
-    },
-
-    // body cells compact
-    td: { padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.02)", lineHeight: 1.1 },
-
-    // smaller badges
-    badge: { display: "inline-block", padding: "3px 7px", borderRadius: 999, color: "#fff", fontSize: 11, fontWeight: 600 },
-
-    // pager: slightly smaller
-    pager: { display: "flex", gap: 6, alignItems: "center", marginTop: 10 },
-
-    small: { fontSize: 12, color: "#9ca3af" },
-
-    headingRow: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
-
-    // small action button (edit/delete)
-    actionBtn: { padding: "5px 8px", marginLeft: 6, cursor: "pointer", fontSize: 13 }
+  const pagerTextStyle: React.CSSProperties = {
+    fontSize: 12,
+    color: "#9ca3af",
   };
 
   return (
-    <div style={styles.container}>
+    <div className="sg-root">
       <style>{`
         .dutytable-scroll {
           scrollbar-width: thin;
@@ -471,10 +451,14 @@ export default function DutyStandbyPage(): JSX.Element {
         }
         .dutytable-scroll::-webkit-scrollbar { width: 12px; height: 12px; }
         .dutytable-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 12px; }
-        .dutytable-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 12px; border: 3px solid transparent; background-clip: padding-box; }
+        .dutytable-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.08);
+          border-radius: 12px;
+          border: 3px solid transparent;
+          background-clip: padding-box;
+        }
         .dutytable-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
 
-        /* glass-style buttons */
         .glass-btn {
           border: 1px solid rgba(255,255,255,0.08);
           background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
@@ -489,13 +473,25 @@ export default function DutyStandbyPage(): JSX.Element {
         }
         .glass-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(2,6,23,0.5); }
         .glass-btn:active { transform: translateY(0); }
-        .glass-btn.primary { background: linear-gradient(180deg, rgba(37,99,235,0.12), rgba(37,99,235,0.06)); border-color: rgba(37,99,235,0.24); }
+        .glass-btn.primary {
+          background: linear-gradient(180deg, rgba(37,99,235,0.12), rgba(37,99,235,0.06));
+          border-color: rgba(37,99,235,0.24);
+        }
         .glass-btn.ghost { background: transparent; border-color: rgba(255,255,255,0.06); color: #cbd5e1; }
-        .glass-btn.danger { background: linear-gradient(180deg, rgba(239,68,68,0.12), rgba(239,68,68,0.06)); border-color: rgba(239,68,68,0.22); }
+        .glass-btn.danger {
+          background: linear-gradient(180deg, rgba(239,68,68,0.12), rgba(239,68,68,0.06));
+          border-color: rgba(239,68,68,0.22);
+        }
         .glass-btn.small { padding: 6px 8px; border-radius: 8px; font-size: 13px; }
-        .glass-action { padding: 5px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); background: rgba(255,255,255,0.02); color: #e6eef3; cursor: pointer; }
+        .glass-action {
+          padding: 5px 8px;
+          border-radius: 8px;
+          border: 1px solid rgba(255,255,255,0.04);
+          background: rgba(255,255,255,0.02);
+          color: #e6eef3;
+          cursor: pointer;
+        }
 
-        /* POS badge (used for crew_pos) */
         .pos-badge {
           display: inline-block;
           padding: 4px 8px;
@@ -505,7 +501,6 @@ export default function DutyStandbyPage(): JSX.Element {
           font-size: 12px;
         }
 
-        /* simple modal inner styling */
         .ds-modal-inner {
           width: 720px;
           max-width: 95%;
@@ -517,55 +512,394 @@ export default function DutyStandbyPage(): JSX.Element {
         }
       `}</style>
 
-      <div style={styles.headingRow}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 28 }}>Duty Standby</h1>
-          <div style={{ color: "#9aa4ad", fontSize: 12 }}>List / search duty standby here</div>
+      <div style={{ maxWidth: "1180px", margin: "0 auto", padding: "14px 16px" }}>
+        {/* Header */}
+        <div className="sg-header" style={{ marginBottom: 12 }}>
+          <h1>Duty / Standby Operations</h1>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setViewPivot((v) => !v)} className="glass-btn ghost">
-            {viewPivot ? "Show Raw" : "Show Pivot"}
+
+        {/* Top actions row */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 10,
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              onClick={() => setShowInsert(true)}
+              className="glass-btn primary"
+            >
+              Add Duty / Standby
+            </button>
+            <button
+              onClick={() => setViewPivot((v) => !v)}
+              className="glass-btn ghost"
+            >
+              {viewPivot ? "Show Raw View" : "Show Pivot View"}
+            </button>
+            <button onClick={downloadCSV} className="glass-btn ghost">
+              Export CSV
+            </button>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <span style={pagerTextStyle}>
+              {loading ? "Loading…" : `${total} records`}
+            </span>
+            {error && (
+              <span style={{ color: "salmon", fontSize: 12 }}>{error}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Filters row */}
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+            flexWrap: "wrap",
+            marginBottom: 12,
+          }}
+        >
+          <input
+            placeholder="Search name / crew id / SBY / POS / MC / EQT..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            style={{
+              padding: "8px 12px",
+              minWidth: 260,
+              borderRadius: 10,
+              border: "1px solid rgba(148,163,184,0.6)",
+              background: "rgba(15,23,42,0.95)",
+              color: "#e6eef7",
+              fontSize: 13,
+            }}
+          />
+          <input
+            type="date"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            style={{
+              padding: "8px 10px",
+              borderRadius: 10,
+              border: "1px solid rgba(148,163,184,0.6)",
+              background: "rgba(15,23,42,0.95)",
+              color: "#e6eef7",
+              fontSize: 13,
+            }}
+          />
+          <button
+            onClick={() => setDateFilter("")}
+            className="glass-btn small"
+          >
+            Clear date
           </button>
-          <button onClick={downloadCSV} className="glass-btn ghost">
-            Export CSV
+          <button
+            onClick={() => setDateFilter(isoOffset(-1))}
+            className="glass-btn small"
+          >
+            Yesterday
+          </button>
+          <button
+            onClick={() => setDateFilter(isoOffset(0))}
+            className="glass-btn small"
+          >
+            Today
+          </button>
+          <button
+            onClick={() => setDateFilter(isoOffset(1))}
+            className="glass-btn small"
+          >
+            Tomorrow
           </button>
         </div>
-      </div>
 
-      <div style={styles.controls}>
-        <input
-          placeholder="Search name / crew id / sby / pos / mc..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          style={{ padding: "8px 12px", minWidth: 300 }}
-        />
-        <input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} style={{ padding: "8px 10px" }} />
-        <button onClick={() => setDateFilter("")} className="glass-btn small">
-          Clear date
-        </button>
-        <button onClick={() => setDateFilter(isoOffset(-1))} className="glass-btn small">
-          Yesterday
-        </button>
-        <button onClick={() => setDateFilter(isoOffset(0))} className="glass-btn small">
-          Today
-        </button>
-        <button onClick={() => setDateFilter(isoOffset(1))} className="glass-btn small">
-          Tomorrow
-        </button>
+        {/* Main glass card */}
+        <div className="sg-card">
+          <div className="sg-strip">
+            <div>{viewPivot ? "Standby Matrix by EQT & Rank" : "Duty / Standby — Raw Roster"}</div>
+            <div style={{ fontSize: 12, opacity: 0.9 }}>
+              {dateFilter || "All dates"} • {total} records
+            </div>
+          </div>
 
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={styles.small}>{loading ? "Loading..." : `${total} rows`}</div>
-          {error && <div style={{ color: "salmon" }}>{error}</div>}
+          {/* RAW TABLE VIEW */}
+          {!viewPivot && (
+            <>
+              <div style={{ marginTop: 6 }}>
+              </div>
+
+              <div
+                className="dutytable-scroll"
+                style={{
+                  maxHeight: 380,
+                  overflow: "auto",
+                  borderRadius: 12,
+                  marginTop: 10,
+                }}
+              >
+                <table
+                  className="sg-table"
+                  style={{ tableLayout: "fixed", fontSize: 13 }}
+                >
+                  <colgroup>
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "9%" }} />
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "10%" }} />
+                    <col style={{ width: "40%" }} />
+                    <col style={{ width: "17%" }} />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>EQT</th>
+                      <th>SBY</th>
+                      <th>POS</th>
+                      <th>Crew</th>
+                      <th>MC</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageRows.length === 0 && !loading && (
+                      <tr>
+                        <td colSpan={6} style={{ padding: 14 }}>
+                          <span className="sg-small">No rows</span>
+                        </td>
+                      </tr>
+                    )}
+                    {pageRows.map((r) => (
+                      <tr key={r.id ?? `${r.crew_id}-${r.sby_code}-${r.rep_date}`}>
+                        <td>{formatDateIso(r.rep_date ?? r.rep_datetime)}</td>
+                        <td>
+                          <span
+                            style={{
+                              display: "inline-block",
+                              padding: "4px 8px",
+                              borderRadius: 999,
+                              color: "#fff",
+                              fontSize: 12,
+                              fontWeight: 600,
+                              background: badgeColor(r.eqt),
+                            }}
+                          >
+                            {r.eqt ?? "—"}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            style={{
+                              display: "inline-block",
+                              padding: "4px 8px",
+                              borderRadius: 999,
+                              color: "#fff",
+                              fontSize: 12,
+                              fontWeight: 600,
+                              background: badgeColor(r.sby_code),
+                            }}
+                          >
+                            {r.sby_code ?? "—"}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className="pos-badge"
+                            style={{ background: posBadgeColor(r.crew_pos) }}
+                          >
+                            {r.crew_pos ?? "—"}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 700 }}>
+                            {r.name ?? "—"}
+                          </div>
+                          <div style={{ color: "#9ca3af", fontSize: 12 }}>
+                            {r.crew_id ?? ""}
+                            {r.dutyno ? ` • ${r.dutyno}` : ""}
+                          </div>
+                          <div style={{ marginTop: 6 }}>
+                            <button
+                              onClick={() => handleOpenEdit(r)}
+                              className="glass-action"
+                              style={{ marginRight: 8 }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(r)}
+                              className="glass-btn danger"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                        <td>{r.mc_code ?? ""}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination strip */}
+              <div
+                style={{
+                  marginTop: 10,
+                  display: "flex",
+                  gap: 6,
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
+              >
+                <button
+                  onClick={() => setPage(1)}
+                  disabled={page === 1}
+                  className="glass-btn small"
+                >
+                  ⏮
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="glass-btn small"
+                >
+                  ◀
+                </button>
+                <div style={{ padding: "4px 8px", fontSize: 13 }}>
+                  Page {page} of {pages}
+                </div>
+                <button
+                  onClick={() => setPage((p) => Math.min(pages, p + 1))}
+                  disabled={page === pages}
+                  className="glass-btn small"
+                >
+                  ▶
+                </button>
+                <button
+                  onClick={() => setPage(pages)}
+                  disabled={page === pages}
+                  className="glass-btn small"
+                >
+                  ⏭
+                </button>
+
+                <div style={{ marginLeft: "auto", ...pagerTextStyle }}>
+                  Showing {pageRows.length} of {total}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* PIVOT VIEW */}
+          {viewPivot && (
+            <>
+              <div style={{ marginTop: 6 }}>
+                <div className="sg-sub">
+                  Standby matrix grouped by equipment & crew position
+                </div>
+              </div>
+
+              <div style={{ overflowX: "auto", marginTop: 12 }}>
+                <table
+                  className="sg-table"
+                  style={{ minWidth: 720, fontSize: 13 }}
+                >
+                  <thead>
+                    <tr>
+                      <th>EQT</th>
+                      <th>Rank</th>
+                      {pivot2.sbyCols.map((c) => (
+                        <th key={c} style={{ textAlign: "right" }}>
+                          {c}
+                        </th>
+                      ))}
+                      <th style={{ textAlign: "right" }}>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pivot2.rows.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={2 + pivot2.sbyCols.length + 1}
+                          style={{ padding: 12 }}
+                        >
+                          <span className="sg-small">No pivot rows</span>
+                        </td>
+                      </tr>
+                    )}
+                    {pivot2.rows.map((r, i) => (
+                      <tr key={i}>
+                        <td>{r.eqt}</td>
+                        <td>{r.crew_pos}</td>
+                        {pivot2.sbyCols.map((c) => (
+                          <td
+                            key={c}
+                            style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}
+                          >
+                            {r[c] || 0}
+                          </td>
+                        ))}
+                        <td
+                          style={{
+                            textAlign: "right",
+                            fontWeight: 700,
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          {r.total}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  {pivot2.rows.length > 0 && (
+                    <tfoot>
+                      <tr>
+                        <td colSpan={2} style={{ fontWeight: 600 }}>
+                          Grand Total
+                        </td>
+                        {pivot2.sbyCols.map((c) => {
+                          const sum = pivot2.rows.reduce(
+                            (s, r) => s + (r[c] || 0),
+                            0
+                          );
+                          return (
+                            <td
+                              key={c}
+                              style={{
+                                textAlign: "right",
+                                fontWeight: 700,
+                                fontVariantNumeric: "tabular-nums",
+                              }}
+                            >
+                              {sum}
+                            </td>
+                          );
+                        })}
+                        <td
+                          style={{
+                            textAlign: "right",
+                            fontWeight: 800,
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          {pivot2.rows.reduce((s, r) => s + r.total, 0)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      <div style={{ marginBottom: 12 }}>
-        <button onClick={() => setShowInsert(true)} className="glass-btn primary">
-          Add Duty / Standby
-        </button>
-      </div>
-
-      {/* ADD FORM AS POPUP MODAL */}
+      {/* ADD FORM MODAL */}
       {showInsert && (
         <div
           onClick={() => setShowInsert(false)}
@@ -579,17 +913,30 @@ export default function DutyStandbyPage(): JSX.Element {
             zIndex: 999,
           }}
         >
-          <div className="ds-modal-inner" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div
+            className="ds-modal-inner"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 8,
+              }}
+            >
               <h3 style={{ margin: 0 }}>Add Duty / Standby</h3>
-              <button onClick={() => setShowInsert(false)} className="glass-btn ghost" style={{ padding: "6px 8px" }}>
+              <button
+                onClick={() => setShowInsert(false)}
+                className="glass-btn ghost"
+                style={{ padding: "6px 8px" }}
+              >
                 Close
               </button>
             </div>
 
             <InsertDutyForm
               onAdded={() => {
-                // close modal, trigger reload
                 setShowInsert(false);
                 setReloadCounter((c) => c + 1);
               }}
@@ -598,7 +945,7 @@ export default function DutyStandbyPage(): JSX.Element {
         </div>
       )}
 
-      {/* edit modal */}
+      {/* EDIT MODAL */}
       {editingRow && (
         <div
           onClick={() => setEditingRow(null)}
@@ -612,127 +959,36 @@ export default function DutyStandbyPage(): JSX.Element {
             zIndex: 999,
           }}
         >
-          <div className="ds-modal-inner" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div
+            className="ds-modal-inner"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 8,
+              }}
+            >
               <h3 style={{ margin: 0 }}>Edit Duty / Standby</h3>
-              <button onClick={() => setEditingRow(null)} className="glass-btn ghost" style={{ padding: "6px 8px" }}>
+              <button
+                onClick={() => setEditingRow(null)}
+                className="glass-btn ghost"
+                style={{ padding: "6px 8px" }}
+              >
                 Close
               </button>
             </div>
 
-            <EditDutyForm row={editingRow} onCancel={() => setEditingRow(null)} onSaved={() => handleAfterEdit()} />
+            <EditDutyForm
+              row={editingRow}
+              onCancel={() => setEditingRow(null)}
+              onSaved={handleAfterEdit}
+            />
           </div>
         </div>
       )}
-
-      <div style={styles.card}>
-        {!viewPivot && (
-          <>
-            <h3 style={{ marginTop: 6, fontSize: 16 }}>Duty / Standby (Raw)</h3>
-            <div className="dutytable-scroll" style={{ maxHeight: 360, overflow: "auto", borderRadius: 8 }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, tableLayout: "fixed" }}>
-                <colgroup>
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "9%" }} />
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "10%" }} />
-                  <col style={{ width: "40%" }} />
-                  <col style={{ width: "17%" }} />
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th style={{ position: "sticky", top: 0, zIndex: 6, background: "rgba(10,16,20,0.92)", padding: "12px", textAlign: "left", color: "#E6EEF3", fontWeight: 700 }}>Date</th>
-                    <th style={{ position: "sticky", top: 0, zIndex: 6, background: "rgba(10,16,20,0.92)", padding: "12px", textAlign: "left", color: "#E6EEF3", fontWeight: 700 }}>EQT</th>
-                    <th style={{ position: "sticky", top: 0, zIndex: 6, background: "rgba(10,16,20,0.92)", padding: "12px", textAlign: "left", color: "#E6EEF3", fontWeight: 700 }}>SBY</th>
-                    <th style={{ position: "sticky", top: 0, zIndex: 6, background: "rgba(10,16,20,0.92)", padding: "12px", textAlign: "left", color: "#E6EEF3", fontWeight: 700 }}>Pos</th>
-                    <th style={{ position: "sticky", top: 0, zIndex: 6, background: "rgba(10,16,20,0.92)", padding: "12px", textAlign: "left", color: "#E6EEF3", fontWeight: 700 }}>Crew</th>
-                    <th style={{ position: "sticky", top: 0, zIndex: 6, background: "rgba(10,16,20,0.92)", padding: "12px", textAlign: "left", color: "#E6EEF3", fontWeight: 700 }}>MC</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageRows.length === 0 && !loading && (
-                    <tr><td style={{ padding: 14 }} colSpan={7}>No rows</td></tr>
-                  )}
-                  {pageRows.map((r) => (
-                    <tr key={r.id ?? `${r.crew_id}-${r.sby_code}-${r.rep_date}`}>
-                      <td style={{ padding: "12px", borderBottom: "1px solid rgba(255,255,255,0.02)" }}>{formatDateIso(r.rep_date ?? r.rep_datetime)}</td>
-                      <td style={{ padding: "12px", borderBottom: "1px solid rgba(255,255,255,0.02)" }}>
-                        <span style={{ display: "inline-block", padding: "4px 8px", borderRadius: 999, color: "#fff", fontSize: 12, fontWeight: 600, background: badgeColor(r.eqt) }}>{r.eqt ?? "—"}</span>
-                      </td>
-                      <td style={{ padding: "12px", borderBottom: "1px solid rgba(255,255,255,0.02)" }}>
-                        <span style={{ display: "inline-block", padding: "4px 8px", borderRadius: 999, color: "#fff", fontSize: 12, fontWeight: 600, background: badgeColor(r.sby_code) }}>{r.sby_code ?? "—"}</span>
-                      </td>
-                      <td style={{ padding: "12px", borderBottom: "1px solid rgba(255,255,255,0.02)", fontWeight: 600 }}>
-                        <span className="pos-badge" style={{ background: posBadgeColor(r.crew_pos) }}>
-                          {r.crew_pos ?? "—"}
-                        </span>
-                      </td>
-                      <td style={{ padding: "12px", borderBottom: "1px solid rgba(255,255,255,0.02)" }}>
-                        <div style={{ fontWeight: 700 }}>{r.name ?? "—"}</div>
-                        <div style={{ color: "#9ca3af", fontSize: 12 }}>{r.crew_id ?? ""}</div>
-                        <div style={{ marginTop: 6 }}>
-                          <button onClick={() => handleOpenEdit(r)} className="glass-action" style={{ marginRight: 8 }}>Edit</button>
-                          <button onClick={() => handleDelete(r)} className="glass-btn danger">Delete</button>
-                        </div>
-                      </td>
-                      <td style={{ padding: "12px", borderBottom: "1px solid rgba(255,255,255,0.02)" }}>{r.mc_code ?? ""}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            <div style={styles.pager}>
-              <button onClick={() => setPage(1)} disabled={page === 1} className="glass-btn small">⏮</button>
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="glass-btn small">◀</button>
-              <div style={{ padding: "6px 10px" }}>Page {page} of {pages}</div>
-              <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={page === pages} className="glass-btn small">▶</button>
-              <button onClick={() => setPage(pages)} disabled={page === pages} className="glass-btn small">⏭</button>
-              <div style={{ marginLeft: "auto", color: "#9ca3af" }}>Showing {pageRows.length} of {total}</div>
-            </div>
-          </>
-        )}
-
-        {viewPivot && (
-          <>
-            <h3 style={{ marginTop: 4 }}>Pivot — SBY matrix (eqt × rank)</h3>
-            <div style={{ overflow: "auto" }}>
-              <table style={{ ...styles.table, minWidth: 720 }}>
-                <thead>
-                  <tr>
-                    <th style={styles.th}>EQT</th>
-                    <th style={styles.th}>Rank</th>
-                    {pivot2.sbyCols.map((c) => <th style={styles.th} key={c}>{c}</th>)}
-                    <th style={styles.th}>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pivot2.rows.length === 0 && <tr><td style={styles.td} colSpan={2 + pivot2.sbyCols.length + 1}>No pivot rows</td></tr>}
-                  {pivot2.rows.map((r, i) => (
-                    <tr key={i}>
-                      <td style={styles.td}>{r.eqt}</td>
-                      <td style={styles.td}>{r.crew_pos}</td>
-                      {pivot2.sbyCols.map((c) => <td key={c} style={{ ...styles.td, textAlign: "right" }}>{r[c] || 0}</td>)}
-                      <td style={{ ...styles.td, textAlign: "right", fontWeight: 700 }}>{r.total}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr style={{ borderTop: "2px solid rgba(255,255,255,0.04)" }}>
-                    <td style={styles.td} colSpan={2}>Grand Total</td>
-                    {pivot2.sbyCols.map((c) => {
-                      const sum = pivot2.rows.reduce((s, r) => s + (r[c] || 0), 0);
-                      return <td key={c} style={{ ...styles.td, textAlign: "right", fontWeight: 700 }}>{sum}</td>;
-                    })}
-                    <td style={{ ...styles.td, textAlign: "right", fontWeight: 800 }}>{pivot2.rows.reduce((s, r) => s + r.total, 0)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </>
-        )}
-      </div>
     </div>
   );
 }

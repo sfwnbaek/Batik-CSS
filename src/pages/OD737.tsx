@@ -31,6 +31,16 @@ export default function OD737Page(): JSX.Element {
 
   // filtering state
   const [posFilter, setPosFilter] = useState<string>("ALL");
+  const [crewIdFilter, setCrewIdFilter] = useState<string>("");
+  const [nameFilter, setNameFilter] = useState<string>("");
+
+  // month filter (for API)
+  const [monthFilter, setMonthFilter] = useState<string>(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${yyyy}-${mm}`;
+  });
 
   // summary
   const [summary, setSummary] = useState<any>(null);
@@ -74,10 +84,11 @@ export default function OD737Page(): JSX.Element {
   }
 
   useEffect(() => {
-    fetchMetrics();
-    fetchSummary();
+    // keep metrics + summary in sync with month filter
+    fetchMetrics(monthFilter);
+    fetchSummary(monthFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reload]);
+  }, [reload, monthFilter]);
 
   // prevent body scroll while modal is open
   useEffect(() => {
@@ -94,11 +105,12 @@ export default function OD737Page(): JSX.Element {
 
   // called after InsertMetricForm successfully adds a row
   function handleAdded() {
-    setShowAddModal(false); // close modal popup
+    setShowAddModal(false);
     setReload((s) => s + 1);
+    fetchSummary(monthFilter);
   }
 
-  // small helper to format BH seconds -> HH:MM:SS
+  // BH helpers
   function secsToHHMMSS(s: number) {
     if (!s) return "0:00";
     const hh = Math.floor(s / 3600);
@@ -136,7 +148,11 @@ export default function OD737Page(): JSX.Element {
 
       const text = await res.text();
       let data: any;
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { raw: text };
+      }
 
       if (!res.ok) {
         throw new Error(data.error || `HTTP ${res.status}`);
@@ -156,7 +172,7 @@ export default function OD737Page(): JSX.Element {
 
   // Open edit modal with the metric
   function openEdit(m: Metric) {
-    setEditing({ ...m }); // copy
+    setEditing({ ...m });
   }
 
   // handle edit form field change
@@ -183,18 +199,22 @@ export default function OD737Page(): JSX.Element {
         off: (editing as any).off,
         lve: (editing as any).lve,
         na_codes: (editing as any).na_codes,
-        trg_codes: (editing as any).trg_codes
+        trg_codes: (editing as any).trg_codes,
       };
 
       const res = await fetch(`${API_BASE}/update_metric_737.php`, {
-        method: "POST", // server reads JSON from the body
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const text = await res.text();
       let data: any;
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { raw: text };
+      }
 
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
@@ -213,25 +233,43 @@ export default function OD737Page(): JSX.Element {
     }
   }
 
-  const bracketCounts = React.useMemo(() => {
+  const bracketCounts = useMemo(() => {
     if (!summary || !Array.isArray(summary.brackets)) return [];
     return summary.brackets;
   }, [summary]);
 
-  // apply pos filtering
-  const filteredRows = React.useMemo(() => {
+  // apply POS + crew ID + name filters
+  const filteredRows = useMemo(() => {
     if (!rows || rows.length === 0) return [];
-    if (!posFilter || posFilter === "ALL") return rows;
-    const pf = posFilter.toUpperCase();
-    return rows.filter((r) => {
-      const rp = (r.pos || "").toUpperCase();
-      // treat CP and CPT as equivalent
-      if ((pf === "CP" || pf === "CPT") && (rp === "CP" || rp === "CPT")) return true;
-      return rp === pf;
-    });
-  }, [rows, posFilter]);
 
-  // small layout helper
+    let result = [...rows];
+
+    // POS filter
+    if (posFilter && posFilter !== "ALL") {
+      const pf = posFilter.toUpperCase();
+      result = result.filter((r) => {
+        const rp = (r.pos || "").toUpperCase();
+        if ((pf === "CP" || pf === "CPT") && (rp === "CP" || rp === "CPT")) return true;
+        return rp === pf;
+      });
+    }
+
+    // Crew ID search
+    if (crewIdFilter.trim() !== "") {
+      const q = crewIdFilter.trim();
+      result = result.filter((r) => String(r.crew_id).includes(q));
+    }
+
+    // Name search (case-insensitive)
+    if (nameFilter.trim() !== "") {
+      const q = nameFilter.trim().toLowerCase();
+      result = result.filter((r) => (r.name || "").toLowerCase().includes(q));
+    }
+
+    return result;
+  }, [rows, posFilter, crewIdFilter, nameFilter]);
+
+  // small layout helper (kept if you want to reuse later)
   function isoOffset(offsetDays: number) {
     const d = new Date();
     d.setDate(d.getDate() + offsetDays);
@@ -244,17 +282,20 @@ export default function OD737Page(): JSX.Element {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: 20, flex: 1, minHeight: 0 }}>
       <style>{`
-        /* Reuse the Duty scrollbar styling so OD pages look consistent */
         .dutytable-scroll {
           scrollbar-width: thin;
           scrollbar-color: rgba(255,255,255,0.10) rgba(255,255,255,0.03);
         }
         .dutytable-scroll::-webkit-scrollbar { width: 12px; height: 12px; }
         .dutytable-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 12px; }
-        .dutytable-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 12px; border: 3px solid transparent; background-clip: padding-box; }
+        .dutytable-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.08);
+          border-radius: 12px;
+          border: 3px solid transparent;
+          background-clip: padding-box;
+        }
         .dutytable-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
 
-        /* glass-style buttons */
         .glass-btn {
           border: 1px solid rgba(255,255,255,0.08);
           background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
@@ -269,11 +310,25 @@ export default function OD737Page(): JSX.Element {
         }
         .glass-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(2,6,23,0.5); }
         .glass-btn:active { transform: translateY(0); }
-        .glass-btn.primary { background: linear-gradient(180deg, rgba(37,99,235,0.12), rgba(37,99,235,0.06)); border-color: rgba(37,99,235,0.24); }
+        .glass-btn.primary {
+          background: linear-gradient(180deg, rgba(37,99,235,0.12), rgba(37,99,235,0.06));
+          border-color: rgba(37,99,235,0.24);
+        }
         .glass-btn.ghost { background: transparent; border-color: rgba(255,255,255,0.06); color: #cbd5e1; }
-        .glass-btn.danger { background: linear-gradient(180deg, rgba(239,68,68,0.12), rgba(239,68,68,0.06)); border-color: rgba(239,68,68,0.22); }
+        .glass-btn.danger {
+          background: linear-gradient(180deg, rgba(239,68,68,0.12), rgba(239,68,68,0.06));
+          border-color: rgba(239,68,68,0.22);
+        }
         .glass-btn.small { padding: 6px 8px; border-radius: 8px; font-size: 13px; }
-        .glass-action { padding: 5px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); background: rgba(255,255,255,0.02); color: #e6eef3; cursor: pointer; }
+
+        .glass-action {
+          padding: 5px 8px;
+          border-radius: 8px;
+          border: 1px solid rgba(255,255,255,0.04);
+          background: rgba(255,255,255,0.02);
+          color: #e6eef3;
+          cursor: pointer;
+        }
 
         .od-card {
           background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
@@ -285,9 +340,12 @@ export default function OD737Page(): JSX.Element {
         }
 
         .od-table thead th { position: sticky; top: 0; z-index: 8; background: rgba(6,10,12,0.9); }
-        .od-table td, .od-table th { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.02); font-size: 13px; }
+        .od-table td, .od-table th {
+          padding: 10px;
+          border-bottom: 1px solid rgba(255,255,255,0.02);
+          font-size: 13px;
+        }
 
-        /* modal inner styling (for Add and Edit popups) */
         .ds-modal-inner {
           width: 720px;
           max-width: 95%;
@@ -297,9 +355,6 @@ export default function OD737Page(): JSX.Element {
           padding: 16px;
           border-radius: 10px;
         }
-
-        /* make modal's direct buttons use glass style if plain <button> used inside InsertMetricForm container */
-        .ds-modal-inner .glass-btn { box-shadow: 0 6px 16px rgba(2,6,23,0.45); }
       `}</style>
 
       {/* header */}
@@ -309,13 +364,17 @@ export default function OD737Page(): JSX.Element {
         </div>
 
         <div>
-          <button onClick={() => setShowAddModal(true)} className="glass-btn primary" style={{ marginRight: 8 }}>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="glass-btn primary"
+            style={{ marginRight: 8 }}
+          >
             Add Metric
           </button>
           <button
             onClick={() => {
               setReload((s) => s + 1);
-              fetchSummary();
+              fetchSummary(monthFilter);
             }}
             className="glass-btn ghost"
           >
@@ -324,11 +383,70 @@ export default function OD737Page(): JSX.Element {
         </div>
       </div>
 
-      {/* Controls: POS filter */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      {/* Month filter row */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          marginTop: 4,
+          flexWrap: "wrap",
+        }}
+      >
+        <span style={{ fontSize: 13, color: "#9aa4ad" }}>Month</span>
+
+        <input
+          type="month"
+          value={monthFilter}
+          onChange={(e) => {
+            const v = e.target.value;
+            setMonthFilter(v);
+            fetchMetrics(v);
+            fetchSummary(v);
+          }}
+          style={{
+            background: "rgba(15,23,42,0.9)",
+            border: "1px solid rgba(148,163,184,0.5)",
+            borderRadius: 8,
+            padding: "6px 8px",
+            color: "#e5edf7",
+            fontSize: 13,
+            outline: "none",
+          }}
+        />
+
+        <button
+          className="glass-btn ghost"
+          onClick={() => {
+            const d = new Date();
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const m = `${yyyy}-${mm}`;
+            setMonthFilter(m);
+            fetchMetrics(m);
+            fetchSummary(m);
+          }}
+        >
+          This Month
+        </button>
+      </div>
+
+      {/* Controls: POS + Crew ID + Name filters */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 13, color: "#9aa4ad" }}>Filter POS</span>
-          <select value={posFilter} onChange={(e) => setPosFilter(e.target.value)} style={{ padding: 8 }}>
+          <span style={{ fontSize: 13, color: "#9aa4ad" }}>POS</span>
+          <select
+            value={posFilter}
+            onChange={(e) => setPosFilter(e.target.value)}
+            style={{
+              padding: 8,
+              borderRadius: 8,
+              border: "1px solid rgba(148,163,184,0.6)",
+              background: "rgba(15,23,42,0.9)",
+              color: "#e5edf7",
+              fontSize: 13,
+            }}
+          >
             <option value="ALL">All</option>
             <option value="CPT">CPT</option>
             <option value="FO">FO</option>
@@ -336,15 +454,78 @@ export default function OD737Page(): JSX.Element {
             <option value="ICC">ICC</option>
           </select>
         </label>
-        <button onClick={() => setPosFilter("ALL")} className="glass-btn ghost" style={{ padding: "8px 10px" }}>Clear</button>
-        <div style={{ marginLeft: "auto", color: "#9ca3af" }}>{loading ? "Loading..." : `${filteredRows.length} rows`}</div>
+
+        <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 13, color: "#9aa4ad" }}>Crew ID</span>
+          <input
+            value={crewIdFilter}
+            onChange={(e) => setCrewIdFilter(e.target.value)}
+            placeholder="e.g. 1234"
+            style={{
+              padding: "6px 8px",
+              borderRadius: 8,
+              border: "1px solid rgba(148,163,184,0.6)",
+              background: "rgba(15,23,42,0.9)",
+              color: "#e5edf7",
+              fontSize: 13,
+              minWidth: 90,
+            }}
+          />
+        </label>
+
+        <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 13, color: "#9aa4ad" }}>Name</span>
+          <input
+            value={nameFilter}
+            onChange={(e) => setNameFilter(e.target.value)}
+            placeholder="Search name"
+            style={{
+              padding: "6px 8px",
+              borderRadius: 8,
+              border: "1px solid rgba(148,163,184,0.6)",
+              background: "rgba(15,23,42,0.9)",
+              color: "#e5edf7",
+              fontSize: 13,
+              minWidth: 140,
+            }}
+          />
+        </label>
+
+        <button
+          onClick={() => {
+            setPosFilter("ALL");
+            setCrewIdFilter("");
+            setNameFilter("");
+          }}
+          className="glass-btn ghost"
+          style={{ padding: "8px 10px" }}
+        >
+          Clear filters
+        </button>
+
+        <div style={{ marginLeft: "auto", color: "#9ca3af", fontSize: 13 }}>
+          {loading ? "Loading..." : `${filteredRows.length} rows`}
+        </div>
       </div>
 
-      {/* Data table area: THIS IS THE SCROLLING REGION */}
+      {/* Data table area */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, minHeight: 0 }}>
         <div className="od-card">
-          <div className="dutytable-scroll" style={{ maxHeight: 480, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", borderRadius: 8, minHeight: 0 }}>
-            <table className="od-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, tableLayout: "fixed" }}>
+          <div
+            className="dutytable-scroll"
+            style={{
+              maxHeight: 480,
+              overflowY: "auto",
+              overflowX: "hidden",
+              WebkitOverflowScrolling: "touch",
+              borderRadius: 8,
+              minHeight: 0,
+            }}
+          >
+            <table
+              className="od-table"
+              style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, tableLayout: "fixed" }}
+            >
               <colgroup>
                 <col style={{ width: "12%" }} />
                 <col style={{ width: "8%" }} />
@@ -374,15 +555,42 @@ export default function OD737Page(): JSX.Element {
                   <tr key={r.id}>
                     <td style={{ padding: 8 }}>{r.report_date}</td>
                     <td style={{ padding: 8 }}>{r.crew_id}</td>
-                    <td style={{ padding: 8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</td>
-                    <td style={{ padding: 8 }}>
-                      <span style={{ display: "inline-block", padding: "4px 8px", borderRadius: 999, color: "#fff", fontSize: 12, fontWeight: 700, background: posBadgeColor(r.pos) }}>{r.pos}</span>
+                    <td
+                      style={{
+                        padding: 8,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {r.name}
                     </td>
-                    <td style={{ padding: 8 }}>{fmtBHShort(r.bh_seconds)} ({r.bh_text ?? ""})</td>
+                    <td style={{ padding: 8 }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "4px 8px",
+                          borderRadius: 999,
+                          color: "#fff",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          background: posBadgeColor(r.pos),
+                        }}
+                      >
+                        {r.pos}
+                      </span>
+                    </td>
+                    <td style={{ padding: 8 }}>
+                      {fmtBHShort(r.bh_seconds)} {r.bh_text ? `(${r.bh_text})` : ""}
+                    </td>
                     <td style={{ padding: 8, textAlign: "center" }}>{r.sectors}</td>
                     <td style={{ padding: 8 }}>{r.bkt}</td>
                     <td style={{ padding: 8 }}>
-                      <button onClick={() => openEdit(r)} className="glass-action" style={{ marginRight: 8 }}>
+                      <button
+                        onClick={() => openEdit(r)}
+                        className="glass-action"
+                        style={{ marginRight: 8 }}
+                      >
                         Edit
                       </button>
                       <button onClick={() => handleDelete(r.id)} className="glass-btn danger">
@@ -393,7 +601,9 @@ export default function OD737Page(): JSX.Element {
                 ))}
                 {!loading && filteredRows.length === 0 && (
                   <tr>
-                    <td style={{ padding: 14 }} colSpan={8}>No rows</td>
+                    <td style={{ padding: 14 }} colSpan={8}>
+                      No rows
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -402,7 +612,7 @@ export default function OD737Page(): JSX.Element {
         </div>
       </div>
 
-      {/* ADD METRIC MODAL (popup) */}
+      {/* ADD METRIC MODAL */}
       {showAddModal && (
         <div
           onClick={() => setShowAddModal(false)}
@@ -416,26 +626,30 @@ export default function OD737Page(): JSX.Element {
             zIndex: 999,
           }}
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="ds-modal-inner"
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div onClick={(e) => e.stopPropagation()} className="ds-modal-inner">
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 8,
+              }}
+            >
               <h3 style={{ margin: 0 }}>Add Metric</h3>
-              <button onClick={() => setShowAddModal(false)} className="glass-btn ghost">Close</button>
+              <button onClick={() => setShowAddModal(false)} className="glass-btn ghost">
+                Close
+              </button>
             </div>
 
-            {/* InsertMetricForm must call onAdded when successful */}
-            <InsertMetricForm apiBase={`${API_BASE}/insert_metric_737.php`} onAdded={() => {
-              setShowAddModal(false);
-              setReload(s => s+1);
-              fetchSummary();
-            }} />
+            <InsertMetricForm
+              apiBase={`${API_BASE}/insert_metric_737.php`}
+              onAdded={handleAdded}
+            />
           </div>
         </div>
       )}
 
-      {/* Edit modal (simple inline modal) */}
+      {/* Edit modal */}
       {editing && (
         <div
           style={{
@@ -449,18 +663,31 @@ export default function OD737Page(): JSX.Element {
           }}
           onClick={() => setEditing(null)}
         >
-          <div onClick={(e) => e.stopPropagation()} className="ds-modal-inner" style={{ width: 640, maxHeight: "80vh", overflowY: "auto", padding: 12 }}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="ds-modal-inner"
+            style={{ width: 640, maxHeight: "80vh", overflowY: "auto", padding: 12 }}
+          >
             <h3 style={{ marginTop: 0 }}>Edit Metric #{editing.id}</h3>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <label style={{ display: "block" }}>
                 Report date
-                <input type="date" value={editing.report_date || ""} onChange={(e) => editSet("report_date", e.target.value)} style={{ width: "100%", padding: 8, marginTop: 6 }} />
+                <input
+                  type="date"
+                  value={editing.report_date || ""}
+                  onChange={(e) => editSet("report_date", e.target.value)}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
               </label>
 
               <label style={{ display: "block" }}>
                 POS
-                <select value={editing.pos || ""} onChange={(e) => editSet("pos", e.target.value)} style={{ width: "100%", padding: 8, marginTop: 6 }}>
+                <select
+                  value={editing.pos || ""}
+                  onChange={(e) => editSet("pos", e.target.value)}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                >
                   <option>CP</option>
                   <option>CPT</option>
                   <option>FO</option>
@@ -471,27 +698,55 @@ export default function OD737Page(): JSX.Element {
 
               <label>
                 AC
-                <input value={editing.ac || ""} onChange={(e) => editSet("ac", e.target.value)} style={{ width: "100%", padding: 8, marginTop: 6 }} />
+                <input
+                  value={editing.ac || ""}
+                  onChange={(e) => editSet("ac", e.target.value)}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
               </label>
 
               <label>
                 BH (HH:MM:SS)
-                <input value={editing.bh_text || ""} onChange={(e) => editSet("bh_text", e.target.value)} style={{ width: "100%", padding: 8, marginTop: 6 }} />
+                <input
+                  value={editing.bh_text || ""}
+                  onChange={(e) => editSet("bh_text", e.target.value)}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
               </label>
 
               <label>
                 Sectors
-                <input type="number" value={editing.sectors ?? 0} onChange={(e) => editSet("sectors", Number(e.target.value))} style={{ width: "100%", padding: 8, marginTop: 6 }} />
+                <input
+                  type="number"
+                  value={editing.sectors ?? 0}
+                  onChange={(e) => editSet("sectors", Number(e.target.value))}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
               </label>
 
               <label>
                 Crew name
-                <input value={editing.name || ""} onChange={(e) => editSet("name", e.target.value)} style={{ width: "100%", padding: 8, marginTop: 6 }} />
+                <input
+                  value={editing.name || ""}
+                  onChange={(e) => editSet("name", e.target.value)}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
               </label>
             </div>
 
-            <div style={{ marginTop: 12, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button onClick={() => setEditing(null)} className="glass-btn ghost" style={{ padding: "8px 12px" }}>
+            <div
+              style={{
+                marginTop: 12,
+                display: "flex",
+                gap: 8,
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                onClick={() => setEditing(null)}
+                className="glass-btn ghost"
+                style={{ padding: "8px 12px" }}
+              >
                 Cancel
               </button>
               <button
@@ -500,8 +755,10 @@ export default function OD737Page(): JSX.Element {
                   let secs = editing.bh_seconds || 0;
                   if (txt) {
                     const parts = txt.split(":").map((p) => parseInt(p, 10) || 0);
-                    if (parts.length === 3) secs = parts[0] * 3600 + parts[1] * 60 + parts[2];
-                    else if (parts.length === 2) secs = parts[0] * 3600 + parts[1] * 60;
+                    if (parts.length === 3)
+                      secs = parts[0] * 3600 + parts[1] * 60 + parts[2];
+                    else if (parts.length === 2)
+                      secs = parts[0] * 3600 + parts[1] * 60;
                     else secs = parts[0];
                     editSet("bh_seconds", secs);
                   }

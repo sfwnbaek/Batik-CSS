@@ -57,7 +57,14 @@ function Sparkline({ values = [] }: { values?: number[] }) {
           <stop offset="1" stopColor="#a78bfa" />
         </linearGradient>
       </defs>
-      <polyline points={points} fill="none" stroke="url(#g737)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <polyline
+        points={points}
+        fill="none"
+        stroke="url(#g737)"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -75,11 +82,25 @@ export default function Summary737({ month }: { month?: string }) {
   const [summary, setSummary] = useState<SummaryShape | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // NEW: month filter state
+  const [monthFilter, setMonthFilter] = useState<string>(() => {
+    if (month) return month;
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${yyyy}-${mm}`;
+  });
+
+  // keep in sync if parent changes month prop
+  useEffect(() => {
+    if (month) setMonthFilter(month);
+  }, [month]);
+
   useEffect(() => {
     let mounted = true;
     async function fetchSummary() {
       setLoading(true);
-      const q = month ? `?month=${encodeURIComponent(month)}` : "";
+      const q = monthFilter ? `?month=${encodeURIComponent(monthFilter)}` : "";
       try {
         const res = await fetch(`${API_BASE}/737_summary.php${q}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -93,14 +114,18 @@ export default function Summary737({ month }: { month?: string }) {
       }
     }
     fetchSummary();
-    return () => { mounted = false; };
-  }, [month]);
+    return () => {
+      mounted = false;
+    };
+  }, [monthFilter]);
 
   const positions = ["CP", "FO", "ICC", "CC"];
 
   const maxTotals = useMemo(() => {
     if (!summary?.totals) return { bh: 0, sectors: 0, crew: 0 };
-    let maxBh = 0, maxS = 0, maxC = 0;
+    let maxBh = 0,
+      maxS = 0,
+      maxC = 0;
     for (const p of positions) {
       const t = (summary.totals as any)?.[p] as TotalsRow | undefined;
       if (!t) continue;
@@ -113,9 +138,69 @@ export default function Summary737({ month }: { month?: string }) {
 
   return (
     <div className="sg-root">
-      <div className="sg-header" style={{ marginBottom: 12 }}>
-        <h1>Planned Roster — Flight 737 Crew</h1>
-        <p>Monthly flight hour distribution, totals and averages</p>
+      {/* HEADER + MONTH FILTER */}
+      <div
+        className="sg-header"
+        style={{
+          marginBottom: 12,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          gap: 12,
+        }}
+      >
+        <div>
+          <h1 style={{ marginBottom: 4 }}>Planned Roster — Flight 737 Crew</h1>
+          <p style={{ margin: 0 }}>
+            Monthly flight hour distribution, totals and averages
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 12,
+          }}
+        >
+          <span style={{ opacity: 0.9 }}>Month</span>
+          <input
+            type="month"
+            value={monthFilter}
+            onChange={(e) => setMonthFilter(e.target.value)}
+            style={{
+              background: "rgba(15,23,42,0.9)",
+              border: "1px solid rgba(148,163,184,0.5)",
+              borderRadius: 8,
+              padding: "4px 8px",
+              color: "#e5edf7",
+              fontSize: 12,
+              outline: "none",
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              const d = new Date();
+              const yyyy = d.getFullYear();
+              const mm = String(d.getMonth() + 1).padStart(2, "0");
+              setMonthFilter(`${yyyy}-${mm}`);
+            }}
+            style={{
+              borderRadius: 8,
+              padding: "4px 8px",
+              border: "1px solid rgba(148,163,184,0.5)",
+              background:
+                "linear-gradient(180deg, rgba(148,163,184,0.16), rgba(15,23,42,0.92))",
+              color: "#e6eef3",
+              cursor: "pointer",
+              fontSize: 12,
+            }}
+          >
+            This month
+          </button>
+        </div>
       </div>
 
       <div className="sg-grid">
@@ -136,13 +221,15 @@ export default function Summary737({ month }: { month?: string }) {
                 <table className="sg-table">
                   <thead>
                     <tr>
-                      <th>BH</th><th style={{ textAlign: "center" }}>CP</th>
-                      <th style={{ textAlign: "center" }}>FO</th><th style={{ textAlign: "center" }}>ICC</th>
+                      <th>BH</th>
+                      <th style={{ textAlign: "center" }}>CP</th>
+                      <th style={{ textAlign: "center" }}>FO</th>
+                      <th style={{ textAlign: "center" }}>ICC</th>
                       <th style={{ textAlign: "center" }}>CC</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {summary.brackets!.map(b => (
+                    {summary.brackets!.map((b) => (
                       <tr key={b.bracket}>
                         <td className="sg-pos">{b.bracket}</td>
                         <td style={{ textAlign: "center" }}>{b.cp}</td>
@@ -155,7 +242,9 @@ export default function Summary737({ month }: { month?: string }) {
                 </table>
               </div>
             ) : (
-              <div className="sg-small" style={{ marginTop: 12 }}>No bracket data</div>
+              <div className="sg-small" style={{ marginTop: 12 }}>
+                No bracket data
+              </div>
             )}
           </div>
         </div>
@@ -175,23 +264,70 @@ export default function Summary737({ month }: { month?: string }) {
             ) : (
               <>
                 <div style={{ marginTop: 10 }}>
-                  {positions.map(p => {
-                    const t = (summary.totals as any)?.[p] as TotalsRow | undefined;
+                  {positions.map((p) => {
+                    const t = (summary.totals as any)?.[p] as
+                      | TotalsRow
+                      | undefined;
                     const bh = t?.total_bh_seconds || 0;
                     return (
-                      <div key={p} style={{ display: "grid", gridTemplateColumns: "80px 1fr 90px", gap: 10, alignItems: "center", marginBottom: 8 }}>
+                      <div
+                        key={p}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "80px 1fr 90px",
+                          gap: 10,
+                          alignItems: "center",
+                          marginBottom: 8,
+                        }}
+                      >
                         <div className="sg-pos">{p}</div>
-                        <div><NeonBar value={bh} max={maxTotals.bh} /></div>
-                        <div style={{ textAlign: "right" }} className="sg-mono">{secsToHHMMSS(bh)}</div>
+                        <div>
+                          <NeonBar value={bh} max={maxTotals.bh} />
+                        </div>
+                        <div
+                          style={{ textAlign: "right" }}
+                          className="sg-mono"
+                        >
+                          {secsToHHMMSS(bh)}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
 
                 <div className="sg-totals" style={{ marginTop: 8 }}>
-                  <div><div className="sg-small">Sectors</div><div>{positions.reduce((acc,p) => acc + ((summary.totals as any)?.[p]?.total_sectors || 0), 0)}</div></div>
-                  <div><div className="sg-small">Off</div><div>{positions.reduce((acc,p) => acc + ((summary.totals as any)?.[p]?.total_off || 0), 0)}</div></div>
-                  <div><div className="sg-small">Crew</div><div>{positions.reduce((acc,p) => acc + ((summary.totals as any)?.[p]?.crew_count || 0), 0)}</div></div>
+                  <div>
+                    <div className="sg-small">Sectors</div>
+                    <div>
+                      {positions.reduce(
+                        (acc, p) =>
+                          acc +
+                          ((summary.totals as any)?.[p]?.total_sectors || 0),
+                        0
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="sg-small">Off</div>
+                    <div>
+                      {positions.reduce(
+                        (acc, p) =>
+                          acc + ((summary.totals as any)?.[p]?.total_off || 0),
+                        0
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="sg-small">Crew</div>
+                    <div>
+                      {positions.reduce(
+                        (acc, p) =>
+                          acc +
+                          ((summary.totals as any)?.[p]?.crew_count || 0),
+                        0
+                      )}
+                    </div>
+                  </div>
                 </div>
               </>
             )}
@@ -216,24 +352,40 @@ export default function Summary737({ month }: { month?: string }) {
                   <table className="sg-table">
                     <thead>
                       <tr>
-                        <th>Pos</th><th>BH</th><th style={{ textAlign: "center" }}>S</th>
-                        <th style={{ textAlign: "center" }}>OFF</th><th style={{ textAlign: "center" }}>LVE</th>
-                        <th style={{ textAlign: "center" }}>N/A</th><th style={{ textAlign: "center" }}>TRG</th>
+                        <th>Pos</th>
+                        <th>BH</th>
+                        <th style={{ textAlign: "center" }}>S</th>
+                        <th style={{ textAlign: "center" }}>OFF</th>
+                        <th style={{ textAlign: "center" }}>LVE</th>
+                        <th style={{ textAlign: "center" }}>N/A</th>
+                        <th style={{ textAlign: "center" }}>TRG</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {positions.map(p => {
-                        const a = (summary.averages as any)?.[p] as AveragesRow | undefined;
+                      {positions.map((p) => {
+                        const a = (summary.averages as any)?.[p] as
+                          | AveragesRow
+                          | undefined;
                         const bh = a?.bh_per_crew_seconds || 0;
                         return (
                           <tr key={p}>
                             <td className="sg-pos">{p}</td>
                             <td className="sg-mono">{secsToHHMMSS(bh)}</td>
-                            <td style={{ textAlign: "center" }}>{a?.sectors_per_crew ?? 0}</td>
-                            <td style={{ textAlign: "center" }}>{a?.off_per_crew ?? 0}</td>
-                            <td style={{ textAlign: "center" }}>{a?.lve_per_crew ?? 0}</td>
-                            <td style={{ textAlign: "center" }}>{a?.na_per_crew ?? 0}</td>
-                            <td style={{ textAlign: "center" }}>{a?.trg_per_crew ?? 0}</td>
+                            <td style={{ textAlign: "center" }}>
+                              {a?.sectors_per_crew ?? 0}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              {a?.off_per_crew ?? 0}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              {a?.lve_per_crew ?? 0}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              {a?.na_per_crew ?? 0}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              {a?.trg_per_crew ?? 0}
+                            </td>
                           </tr>
                         );
                       })}
@@ -242,9 +394,17 @@ export default function Summary737({ month }: { month?: string }) {
                 </div>
 
                 <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: 12, color: "#a8c7da", marginBottom: 6 }}>Overview</div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "#a8c7da",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Overview
+                  </div>
                   <div className="sg-spark">
-                    <Sparkline values={[1,2,1,3,2,4,3]} />
+                    <Sparkline values={[1, 2, 1, 3, 2, 4, 3]} />
                   </div>
                 </div>
               </>

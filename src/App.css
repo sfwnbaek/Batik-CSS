@@ -32,10 +32,10 @@ html, body, #root {
 
 /* main area styling + ensure shrink behavior */
 .main-area {
-  flex: 1 1 0%;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  min-height: 100vh;
 }
 
 
@@ -57,18 +57,14 @@ html, body, #root {
   outline: none;
 }
 
-.topbar-right { display:flex; align-items:center; gap:8px; }
-
 .icon-btn { background:transparent; border:0; padding:8px; border-radius:8px; color:var(--text); cursor:pointer; }
 
 .themes-pop { position:absolute; right:120px; top:64px; background:var(--panel); padding:8px; border-radius:8px; box-shadow:0 6px 20px rgba(2,6,23,0.6); }
 
 /* content area must be flexible and shrinkable */
 .content {
-  flex: 1 1 0%;
-  min-width: 0;
-  padding: 28px;
-  box-sizing: border-box;
+  flex: 1;
+  overflow: auto;
 }
 
 
@@ -77,4 +73,9 @@ html, body, #root {
 @media (max-width:900px){
   .batik-sidebar { display:none; }
   .sidebar { display:none; }
+}
+/* LIGHT THEME ROOT */
+.app.light {
+  background: #e5edf7;
+  color: #0f172a;
 }

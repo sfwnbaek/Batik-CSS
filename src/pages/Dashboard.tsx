@@ -67,16 +67,22 @@ export default function Dashboard(): JSX.Element {
             boxSizing: "border-box",
           }}
         >
-          {/* --- Dashboard content (unchanged) --- */}
+          {/* --- Dashboard content --- */}
           <h1 style={{ marginTop: 0 }}>Dashboard</h1>
 
-          {/* Duty standby summary (kept as before) */}
+          {/* Duty standby summary */}
           <div style={{ marginTop: 16, marginBottom: 20 }}>
             <DutyStandbySummary />
           </div>
 
-          {/* Grid for summaries */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {/* 737 and 330 summaries stacked vertically */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+            }}
+          >
             <Summary737 />
             <Summary330 />
           </div>

@@ -1,6 +1,5 @@
 // src/pages/OD330.tsx
 // Planned Roster UI for Flight 330 (A330)
-// Reference screenshot (local file): /mnt/data/Screenshot 2025-11-20 103443.png
 
 import React, { useEffect, useMemo, useState } from "react";
 import InsertMetricForm from "../components/InsertMetricForm"; // adjust path if needed
@@ -34,6 +33,16 @@ export default function OD330Page(): JSX.Element {
 
   // filtering state
   const [posFilter, setPosFilter] = useState<string>("ALL");
+  const [crewIdFilter, setCrewIdFilter] = useState<string>("");
+  const [nameFilter, setNameFilter] = useState<string>("");
+
+  // month filter (for API)
+  const [monthFilter, setMonthFilter] = useState<string>(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${yyyy}-${mm}`; // default to current month
+  });
 
   // summary
   const [summary, setSummary] = useState<any>(null);
@@ -77,10 +86,11 @@ export default function OD330Page(): JSX.Element {
   }
 
   useEffect(() => {
-    fetchMetrics();
-    fetchSummary();
+    // always fetch with current month filter
+    fetchMetrics(monthFilter);
+    fetchSummary(monthFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reload]);
+  }, [reload, monthFilter]);
 
   // prevent body scroll while modal is open
   useEffect(() => {
@@ -99,7 +109,7 @@ export default function OD330Page(): JSX.Element {
   function handleAdded() {
     setShowAddModal(false);
     setReload((s) => s + 1);
-    fetchSummary();
+    fetchSummary(monthFilter);
   }
 
   // BH helpers
@@ -127,7 +137,6 @@ export default function OD330Page(): JSX.Element {
     return "#4b5563"; // fallback gray
   }
 
-  /* --- replace handleDelete in the page --- */
   async function handleDelete(id?: number) {
     if (!id) return;
     if (!confirm("Delete this metric? This cannot be undone.")) return;
@@ -135,12 +144,10 @@ export default function OD330Page(): JSX.Element {
     const endpoint = `${API_BASE}/delete_metric_330.php?id=${encodeURIComponent(id)}`;
 
     try {
-      // Try DELETE first (clean semantic) but gracefully fallback to POST JSON.
       let res = await fetch(endpoint, { method: "DELETE" });
 
-      // Some PHP setups don't accept DELETE; fallback to POST JSON
+      // Fallback to POST JSON if DELETE not supported
       if (!res.ok) {
-        // second attempt: POST JSON to same endpoint (server should accept POST)
         res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -153,9 +160,7 @@ export default function OD330Page(): JSX.Element {
         throw new Error(text || `HTTP ${res.status}`);
       }
 
-      // parse JSON if present
-      let data;
-      try { data = await res.json(); } catch { data = { ok: true }; }
+      try { await res.json(); } catch { /* ignore */ }
 
       setReload((s) => s + 1);
       alert("Deleted");
@@ -221,32 +226,41 @@ export default function OD330Page(): JSX.Element {
     }
   }
 
-  const bracketCounts = React.useMemo(() => {
+  const bracketCounts = useMemo(() => {
     if (!summary || !Array.isArray(summary.brackets)) return [];
     return summary.brackets;
   }, [summary]);
 
-  // apply pos filtering (tolerant to CP/CPT)
-  const filteredRows = React.useMemo(() => {
+  // apply pos + crew id + name filtering
+  const filteredRows = useMemo(() => {
     if (!rows || rows.length === 0) return [];
-    if (!posFilter || posFilter === "ALL") return rows;
-    const pf = posFilter.toUpperCase();
-    return rows.filter((r) => {
-      const rp = (r.pos || "").toUpperCase();
-      if ((pf === "CP" || pf === "CPT") && (rp === "CP" || rp === "CPT")) return true;
-      return rp === pf;
-    });
-  }, [rows, posFilter]);
 
-  // small layout helper
-  function isoOffset(offsetDays: number) {
-    const d = new Date();
-    d.setDate(d.getDate() + offsetDays);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  }
+    let result = [...rows];
+
+    // POS filter (tolerant CP/CPT)
+    if (posFilter && posFilter !== "ALL") {
+      const pf = posFilter.toUpperCase();
+      result = result.filter((r) => {
+        const rp = (r.pos || "").toUpperCase();
+        if ((pf === "CP" || pf === "CPT") && (rp === "CP" || rp === "CPT")) return true;
+        return rp === pf;
+      });
+    }
+
+    // Crew ID search
+    if (crewIdFilter.trim() !== "") {
+      const q = crewIdFilter.trim();
+      result = result.filter((r) => String(r.crew_id).includes(q));
+    }
+
+    // Name search (case-insensitive)
+    if (nameFilter.trim() !== "") {
+      const q = nameFilter.trim().toLowerCase();
+      result = result.filter((r) => (r.name || "").toLowerCase().includes(q));
+    }
+
+    return result;
+  }, [rows, posFilter, crewIdFilter, nameFilter]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: 20, flex: 1, minHeight: 0 }}>
@@ -323,7 +337,7 @@ export default function OD330Page(): JSX.Element {
           <button
             onClick={() => {
               setReload((s) => s + 1);
-              fetchSummary();
+              fetchSummary(monthFilter);
             }}
             className="glass-btn ghost"
           >
@@ -332,11 +346,70 @@ export default function OD330Page(): JSX.Element {
         </div>
       </div>
 
-      {/* Controls: POS filter */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      {/* Month filter row */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          marginTop: 4,
+          flexWrap: "wrap",
+        }}
+      >
+        <span style={{ fontSize: 13, color: "#9aa4ad" }}>Month</span>
+
+        <input
+          type="month"
+          value={monthFilter}
+          onChange={(e) => {
+            const v = e.target.value;
+            setMonthFilter(v);
+            fetchMetrics(v);
+            fetchSummary(v);
+          }}
+          style={{
+            background: "rgba(15,23,42,0.9)",
+            border: "1px solid rgba(148,163,184,0.5)",
+            borderRadius: 8,
+            padding: "6px 8px",
+            color: "#e5edf7",
+            fontSize: 13,
+            outline: "none",
+          }}
+        />
+
+        <button
+          className="glass-btn ghost"
+          onClick={() => {
+            const d = new Date();
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const m = `${yyyy}-${mm}`;
+            setMonthFilter(m);
+            fetchMetrics(m);
+            fetchSummary(m);
+          }}
+        >
+          This Month
+        </button>
+      </div>
+
+      {/* Controls: POS + Crew ID + Name filters */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 13, color: "#9aa4ad" }}>Filter POS</span>
-          <select value={posFilter} onChange={(e) => setPosFilter(e.target.value)} style={{ padding: 8 }}>
+          <span style={{ fontSize: 13, color: "#9aa4ad" }}>POS</span>
+          <select
+            value={posFilter}
+            onChange={(e) => setPosFilter(e.target.value)}
+            style={{
+              padding: 8,
+              borderRadius: 8,
+              border: "1px solid rgba(148,163,184,0.6)",
+              background: "rgba(15,23,42,0.9)",
+              color: "#e5edf7",
+              fontSize: 13,
+            }}
+          >
             <option value="ALL">All</option>
             <option value="CPT">CPT</option>
             <option value="FO">FO</option>
@@ -344,18 +417,79 @@ export default function OD330Page(): JSX.Element {
             <option value="ICC">ICC</option>
           </select>
         </label>
-        <button onClick={() => setPosFilter("ALL")} className="glass-btn ghost" style={{ padding: "8px 10px" }}>
-          Clear
+
+        <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 13, color: "#9aa4ad" }}>Crew ID</span>
+          <input
+            value={crewIdFilter}
+            onChange={(e) => setCrewIdFilter(e.target.value)}
+            placeholder="e.g. 1234"
+            style={{
+              padding: "6px 8px",
+              borderRadius: 8,
+              border: "1px solid rgba(148,163,184,0.6)",
+              background: "rgba(15,23,42,0.9)",
+              color: "#e5edf7",
+              fontSize: 13,
+              minWidth: 90,
+            }}
+          />
+        </label>
+
+        <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 13, color: "#9aa4ad" }}>Name</span>
+          <input
+            value={nameFilter}
+            onChange={(e) => setNameFilter(e.target.value)}
+            placeholder="Search name"
+            style={{
+              padding: "6px 8px",
+              borderRadius: 8,
+              border: "1px solid rgba(148,163,184,0.6)",
+              background: "rgba(15,23,42,0.9)",
+              color: "#e5edf7",
+              fontSize: 13,
+              minWidth: 140,
+            }}
+          />
+        </label>
+
+        <button
+          onClick={() => {
+            setPosFilter("ALL");
+            setCrewIdFilter("");
+            setNameFilter("");
+          }}
+          className="glass-btn ghost"
+          style={{ padding: "8px 10px" }}
+        >
+          Clear filters
         </button>
-        <div style={{ marginLeft: "auto", color: "#9ca3af" }}>{loading ? "Loading..." : `${filteredRows.length} rows`}</div>
+
+        <div style={{ marginLeft: "auto", color: "#9ca3af", fontSize: 13 }}>
+          {loading ? "Loading..." : `${filteredRows.length} rows`}
+        </div>
       </div>
 
       {/* Data table area: scrollable region */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, minHeight: 0 }}>
         {/* Card wrapper with custom scrollbar class applied to inner scroll viewport */}
         <div className="od-card">
-          <div className="dutytable-scroll" style={{ maxHeight: 480, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", borderRadius: 8, minHeight: 0 }}>
-            <table className="od-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, tableLayout: "fixed" }}>
+          <div
+            className="dutytable-scroll"
+            style={{
+              maxHeight: 480,
+              overflowY: "auto",
+              overflowX: "hidden",
+              WebkitOverflowScrolling: "touch",
+              borderRadius: 8,
+              minHeight: 0,
+            }}
+          >
+            <table
+              className="od-table"
+              style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, tableLayout: "fixed" }}
+            >
               <colgroup>
                 <col style={{ width: "12%" }} />
                 <col style={{ width: "8%" }} />
@@ -385,15 +519,42 @@ export default function OD330Page(): JSX.Element {
                   <tr key={r.id}>
                     <td style={{ padding: 8 }}>{r.report_date}</td>
                     <td style={{ padding: 8 }}>{r.crew_id}</td>
-                    <td style={{ padding: 8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</td>
-                    <td style={{ padding: 8 }}>
-                      <span style={{ display: "inline-block", padding: "4px 8px", borderRadius: 999, color: "#fff", fontSize: 12, fontWeight: 700, background: posBadgeColor(r.pos) }}>{r.pos}</span>
+                    <td
+                      style={{
+                        padding: 8,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {r.name}
                     </td>
-                    <td style={{ padding: 8 }}>{fmtBHShort(r.bh_seconds)} ({r.bh_text ?? ""})</td>
+                    <td style={{ padding: 8 }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "4px 8px",
+                          borderRadius: 999,
+                          color: "#fff",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          background: posBadgeColor(r.pos),
+                        }}
+                      >
+                        {r.pos}
+                      </span>
+                    </td>
+                    <td style={{ padding: 8 }}>
+                      {fmtBHShort(r.bh_seconds)} {r.bh_text ? `(${r.bh_text})` : ""}
+                    </td>
                     <td style={{ padding: 8, textAlign: "center" }}>{r.sectors}</td>
                     <td style={{ padding: 8 }}>{r.bkt}</td>
                     <td style={{ padding: 8 }}>
-                      <button onClick={() => openEdit(r)} className="glass-action" style={{ marginRight: 8 }}>
+                      <button
+                        onClick={() => openEdit(r)}
+                        className="glass-action"
+                        style={{ marginRight: 8 }}
+                      >
                         Edit
                       </button>
                       <button onClick={() => handleDelete(r.id)} className="glass-btn danger">
@@ -429,16 +590,25 @@ export default function OD330Page(): JSX.Element {
             zIndex: 999,
           }}
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="ds-modal-inner"
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div onClick={(e) => e.stopPropagation()} className="ds-modal-inner">
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 8,
+              }}
+            >
               <h3 style={{ margin: 0 }}>Add Metric</h3>
-              <button onClick={() => setShowAddModal(false)} className="glass-btn ghost">Close</button>
+              <button onClick={() => setShowAddModal(false)} className="glass-btn ghost">
+                Close
+              </button>
             </div>
 
-            <InsertMetricForm apiBase={`${API_BASE}/insert_metric_330.php`} onAdded={handleAdded} />
+            <InsertMetricForm
+              apiBase={`${API_BASE}/insert_metric_330.php`}
+              onAdded={handleAdded}
+            />
           </div>
         </div>
       )}
@@ -457,18 +627,31 @@ export default function OD330Page(): JSX.Element {
           }}
           onClick={() => setEditing(null)}
         >
-          <div onClick={(e) => e.stopPropagation()} className="ds-modal-inner" style={{ width: 640, maxHeight: "80vh", overflowY: "auto", padding: 12 }}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="ds-modal-inner"
+            style={{ width: 640, maxHeight: "80vh", overflowY: "auto", padding: 12 }}
+          >
             <h3 style={{ marginTop: 0 }}>Edit Metric #{editing.id}</h3>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <label style={{ display: "block" }}>
                 Report date
-                <input type="date" value={editing.report_date || ""} onChange={(e) => editSet("report_date", e.target.value)} style={{ width: "100%", padding: 8, marginTop: 6 }} />
+                <input
+                  type="date"
+                  value={editing.report_date || ""}
+                  onChange={(e) => editSet("report_date", e.target.value)}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
               </label>
 
               <label style={{ display: "block" }}>
                 POS
-                <select value={editing.pos || ""} onChange={(e) => editSet("pos", e.target.value)} style={{ width: "100%", padding: 8, marginTop: 6 }}>
+                <select
+                  value={editing.pos || ""}
+                  onChange={(e) => editSet("pos", e.target.value)}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                >
                   <option>CP</option>
                   <option>CPT</option>
                   <option>FO</option>
@@ -479,27 +662,55 @@ export default function OD330Page(): JSX.Element {
 
               <label>
                 AC
-                <input value={editing.ac || ""} onChange={(e) => editSet("ac", e.target.value)} style={{ width: "100%", padding: 8, marginTop: 6 }} />
+                <input
+                  value={editing.ac || ""}
+                  onChange={(e) => editSet("ac", e.target.value)}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
               </label>
 
               <label>
                 BH (HH:MM:SS)
-                <input value={editing.bh_text || ""} onChange={(e) => editSet("bh_text", e.target.value)} style={{ width: "100%", padding: 8, marginTop: 6 }} />
+                <input
+                  value={editing.bh_text || ""}
+                  onChange={(e) => editSet("bh_text", e.target.value)}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
               </label>
 
               <label>
                 Sectors
-                <input type="number" value={editing.sectors ?? 0} onChange={(e) => editSet("sectors", Number(e.target.value))} style={{ width: "100%", padding: 8, marginTop: 6 }} />
+                <input
+                  type="number"
+                  value={editing.sectors ?? 0}
+                  onChange={(e) => editSet("sectors", Number(e.target.value))}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
               </label>
 
               <label>
                 Crew name
-                <input value={editing.name || ""} onChange={(e) => editSet("name", e.target.value)} style={{ width: "100%", padding: 8, marginTop: 6 }} />
+                <input
+                  value={editing.name || ""}
+                  onChange={(e) => editSet("name", e.target.value)}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
               </label>
             </div>
 
-            <div style={{ marginTop: 12, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button onClick={() => setEditing(null)} className="glass-btn ghost" style={{ padding: "8px 12px" }}>
+            <div
+              style={{
+                marginTop: 12,
+                display: "flex",
+                gap: 8,
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                onClick={() => setEditing(null)}
+                className="glass-btn ghost"
+                style={{ padding: "8px 12px" }}
+              >
                 Cancel
               </button>
               <button
@@ -508,8 +719,10 @@ export default function OD330Page(): JSX.Element {
                   let secs = editing.bh_seconds || 0;
                   if (txt) {
                     const parts = txt.split(":").map((p) => parseInt(p, 10) || 0);
-                    if (parts.length === 3) secs = parts[0] * 3600 + parts[1] * 60 + parts[2];
-                    else if (parts.length === 2) secs = parts[0] * 3600 + parts[1] * 60;
+                    if (parts.length === 3)
+                      secs = parts[0] * 3600 + parts[1] * 60 + parts[2];
+                    else if (parts.length === 2)
+                      secs = parts[0] * 3600 + parts[1] * 60;
                     else secs = parts[0];
                     editSet("bh_seconds", secs);
                   }

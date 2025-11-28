@@ -1,148 +1,188 @@
-/* Topbar.css — Dark Navy topbar that matches sidebar spirit but is visibly separated */
-
-/* Topbar shell */
 .topbar {
-  position: sticky;
-  top: 0;
-  height: 60px;               /* reduce from 100px to avoid large header space */
+  height: 54px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  box-sizing: border-box;
-
-  background: linear-gradient(180deg, #112637, #0b1a27);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  box-shadow: 0 2px 8px rgba(2,6,23,0.35);
-  z-index: 1000;
+  padding: 0 18px;
+  background: #0c1a24;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+  position: sticky;
+  top: 0;
+  z-index: 999;
 }
 
+.topbar-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e6eef3;
+}
 
-/* left side container (kept empty if you removed search) */
-.topbar-left {
+.topbar-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex: 1; /* pushes right icons to the far-right cleanly */
+  gap: 10px;
 }
 
-/* search box (if present) */
-.search-box {
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:8px 12px;
-  border-radius:10px;
-  background: rgba(255,255,255,0.02);
-  min-width: 280px;
-}
-
-.search-box svg {
-  opacity: 0.85;
-}
-
-.search-box input {
-  background: transparent;
-  border: 0;
-  color: inherit;
-  outline: none;
-  width: 100%;
-  font-size: 14px;
-}
-
-/* right side */
-.topbar-right {
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-
-/* icon buttons */
-.icon-btn {
-  background: transparent;
-  border: 0;
-  padding: 8px;
+.topbar-btn {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 7px;
   border-radius: 8px;
-  color: inherit;
+  color: #e6eef3;
   cursor: pointer;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* subtle hover */
-.icon-btn:hover {
-  background: rgba(255,255,255,0.02);
+.topbar-btn:hover {
+  background: rgba(255,255,255,0.08);
+}
+/* --- Neon-Glass Topbar --------------------------------------------------- */
+
+.neo-topbar {
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 22px;
+  box-sizing: border-box;
+
+  /* Glass: light transparent blur */
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+
+  /* Subtle border like your summary cards */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  /* Soft neon glow */
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45),
+              0 0 25px rgba(37, 99, 235, 0.08);
+
+  position: sticky;
+  top: 0;
+  z-index: 60;
 }
 
-/* profile wrapper */
-.profile-menu {
-  position: relative;
+.neo-topbar-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e6eef3;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 6px rgba(125, 211, 252, 0.2);
+}
+/* --- Icons / Buttons ----------------------------------------------------- */
+
+.neo-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.neo-btn {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.02)
+  );
+  color: #e6eef3;
+
+  padding: 8px 10px;
+  border-radius: 10px;
+
+  box-shadow: 0 4px 14px rgba(2, 6, 23, 0.45);
+  backdrop-filter: blur(6px) saturate(120%);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
+
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+
+  transition: 0.15s ease;
 }
 
-/* profile dropdown menu */
-.profile-dropdown {
-  position: absolute;
-  right: 0;
-  top: 46px;
-  background: linear-gradient(180deg, rgba(2,6,23,0.9), rgba(9,12,18,0.95));
-  padding: 8px;
-  border-radius: 8px;
-  box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+.neo-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(2, 6, 23, 0.6),
+    0 0 16px rgba(125, 211, 252, 0.35);
+}
+
+.neo-btn:active {
+  transform: translateY(0);
+}
+/* LIGHT THEME ------------------------------------------------------------ */
+
+.app.light .neo-topbar {
+  height: 58px;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 160px;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 22px;
+  box-sizing: border-box;
+
+  background: rgba(248, 250, 252, 0.85); /* light glass */
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+
+  border-bottom: 1px solid rgba(148, 163, 184, 0.45);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
+
+  position: sticky;
+  top: 0;
   z-index: 60;
 }
 
-.profile-dropdown button {
-  background: transparent;
-  border: 0;
-  color: inherit;
+.app.light .neo-topbar-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+  letter-spacing: 0.5px;
+}
+
+.app.light .neo-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app.light .neo-btn {
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: linear-gradient(
+    180deg,
+    rgba(248, 250, 252, 0.95),
+    rgba(226, 232, 240, 0.9)
+  );
+  color: #0f172a;
+
   padding: 8px 10px;
-  text-align: left;
-  border-radius: 6px;
+  border-radius: 10px;
+
+  box-shadow: 0 2px 8px rgba(148, 163, 184, 0.6);
+
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: 0.15s ease;
 }
 
-.profile-dropdown button:hover {
-  background: rgba(255,255,255,0.02);
+.app.light .neo-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(148, 163, 184, 0.8);
+  background: linear-gradient(
+    180deg,
+    rgba(239, 246, 255, 0.96),
+    rgba(226, 232, 240, 0.96)
+  );
 }
 
-/* themes popover (if used elsewhere) */
-.themes-pop {
-  position: absolute;
-  right: 120px;
-  top: 64px;
-  background: #0f1724;
-  padding: 8px;
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(2,6,23,0.6);
-  z-index: 60;
-}
-
-.themes-pop button {
-  display: block;
-  width: 100%;
-  padding: 6px 10px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.themes-pop button:hover {
-  background: rgba(255,255,255,0.02);
-}
-
-/* responsive adjustments */
-@media (max-width: 900px) {
-  .search-box { min-width: 160px; }
-  .topbar { padding: 0 12px; }
+.app.light .neo-btn:active {
+  transform: translateY(0);
 }
